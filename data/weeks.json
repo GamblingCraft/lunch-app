@@ -1,0 +1,36 @@
+{
+  "weeks": [
+    {
+      "id": 1,
+      "week_code": "2026-W04",
+      "week_period": "19.01.2026 - 23.01.2026",
+      "is_current": true,
+      "created_at": "2026-01-23T09:19:03.976Z",
+      "updated_at": "2026-01-23T09:19:03.976Z"
+    },
+    {
+      "id": 2,
+      "week_code": "2026-W05",
+      "week_period": "26.01.2026 - 30.01.2026",
+      "is_current": false,
+      "created_at": "2026-01-23T09:26:11.059Z",
+      "updated_at": "2026-01-23T09:34:53.987Z"
+    },
+    {
+      "id": 3,
+      "week_code": "2026-W06",
+      "week_period": "02.02.2026 - 06.02.2026",
+      "is_current": false,
+      "created_at": "2026-01-23T11:09:23.715Z",
+      "updated_at": "2026-01-23T11:10:16.303Z"
+    },
+    {
+      "id": 4,
+      "week_code": "2026-W07",
+      "week_period": "09.02.2026 - 13.02.2026",
+      "is_current": false,
+      "created_at": "2026-01-23T11:13:02.199Z",
+      "updated_at": "2026-01-23T11:13:02.199Z"
+    }
+  ]
+}

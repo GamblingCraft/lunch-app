@@ -1,0 +1,12 @@
+{
+  "weeks": [
+    {
+      "id": 1,
+      "week_code": "2024-W48",
+      "week_period": "25.11 - 29.11.2024",
+      "is_current": true,
+      "created_at": "2024-11-25T10:00:00.000Z",
+      "updated_at": "2024-11-25T10:00:00.000Z"
+    }
+  ]
+}
