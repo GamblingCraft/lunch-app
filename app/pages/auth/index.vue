@@ -14,23 +14,25 @@
           <h1 class="text-2xl font-bold text-gray-800 mb-2">Авторизация</h1>
         </div>
 
-        <!-- Telegram Button -->
+       <!-- Telegram Button -->
         <div class="mb-6 p-4">
-          <div class="mt-3">
+          <div class="mt-3 flex justify-center">
             <div id="telegram-login-container"></div>
           </div>
           
           <!-- Альтернативная кнопка на случай проблем с виджетом -->
-          <div v-if="showAlternativeButton && isClient" class="mt-4">
-            <a 
-              :href="telegramAuthUrl"
-              class="block w-full px-4 py-3 bg-[#0088cc] text-white rounded-lg hover:bg-[#0077b3] transition-colors text-center text-sm font-medium"
-            >
-              Войти через Telegram
-            </a>
-            <p class="text-xs text-gray-500 mt-2 text-center">
-              (Альтернативный способ)
-            </p>
+          <div v-if="showAlternativeButton && isClient" class="mt-4 flex justify-center">
+            <div class="w-full max-w-xs">
+              <a 
+                :href="telegramAuthUrl"
+                class="block w-full px-4 py-3 bg-[#0088cc] text-white rounded-lg hover:bg-[#0077b3] transition-colors text-center text-sm font-medium"
+              >
+                Войти через Telegram
+              </a>
+              <p class="text-xs text-gray-500 mt-2 text-center">
+                (Альтернативный способ)
+              </p>
+            </div>
           </div>
         </div>
 
@@ -58,8 +60,6 @@
           <p class="text-xs text-gray-500 mb-1">Отладка:</p>
           <p class="text-xs text-gray-600">Bot ID: {{ botId }}</p>
           <p class="text-xs text-gray-600">Bot Name: {{ botName }}</p>
-          <p v-if="isClient && siteUrl" class="text-xs text-gray-600 truncate">Callback URL: {{ siteUrl }}/auth/callback</p>
-          <p class="text-xs text-gray-600">User ID: 221349731 (ваш)</p>
           <button 
             @click="checkBotStatus"
             class="mt-2 px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
@@ -186,7 +186,7 @@ const loginAsAdmin = () => {
   }
   
   const params = new URLSearchParams(testAdminData)
-  router.push(`/auth/callback?${params.toString()}`)
+  router.push(`/admin`)
 }
 
 const loginAsUser = () => {
@@ -201,7 +201,7 @@ const loginAsUser = () => {
   }
   
   const params = new URLSearchParams(testUserData)
-  router.push(`/auth/callback?${params.toString()}`)
+  router.push(`/cabinet`)
 }
 
 /**
