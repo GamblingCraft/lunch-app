@@ -21,7 +21,7 @@
           </div>
           
           <!-- Альтернативная кнопка на случай проблем с виджетом -->
-          <div v-if="showAlternativeButton" class="mt-4">
+          <div v-if="showAlternativeButton && isClient" class="mt-4">
             <a 
               :href="telegramAuthUrl"
               class="block w-full px-4 py-3 bg-[#0088cc] text-white rounded-lg hover:bg-[#0077b3] transition-colors text-center text-sm font-medium"
@@ -58,7 +58,7 @@
           <p class="text-xs text-gray-500 mb-1">Отладка:</p>
           <p class="text-xs text-gray-600">Bot ID: {{ botId }}</p>
           <p class="text-xs text-gray-600">Bot Name: {{ botName }}</p>
-          <p class="text-xs text-gray-600 truncate">Callback URL: {{ siteUrl }}/auth/callback</p>
+          <p v-if="isClient" class="text-xs text-gray-600 truncate">Callback URL: {{ siteUrl }}/auth/callback</p>
           <p class="text-xs text-gray-600">User ID: 221349731 (ваш)</p>
           <button 
             @click="checkBotStatus"
@@ -95,6 +95,7 @@ const router = useRouter()
 // Telegram bot credentials
 const botId = '8208807830'
 const botName = 'et_lunch_web_bot'
+const isClient = typeof window !== 'undefined'
 const siteUrl = ref('')
 const showAlternativeButton = ref(false)
 
@@ -102,7 +103,7 @@ const showAlternativeButton = ref(false)
 const telegramAuthUrl = ref('')
 
 const initSiteUrl = () => {
-  if (process.client) {
+  if (isClient) {
     siteUrl.value = window.location.origin
     telegramAuthUrl.value = `https://oauth.telegram.org/auth?bot_id=${botId}&origin=${encodeURIComponent(siteUrl.value)}&request_access=write&return_to=${encodeURIComponent(siteUrl.value + '/auth/callback')}`
   }
@@ -112,7 +113,7 @@ const initSiteUrl = () => {
  * Telegram login via script
  */
 const initTelegramLogin = () => {
-  if (!process.client) return
+  if (!isClient) return
 
   console.log('Initializing Telegram login widget...')
   console.log('Site URL:', siteUrl.value)
@@ -223,12 +224,14 @@ onMounted(() => {
   initTelegramLogin()
   
   // Показываем альтернативную кнопку если виджет не загрузился за 3 секунды
-  setTimeout(() => {
-    const container = document.getElementById('telegram-login-container')
-    if (container && container.children.length === 0) {
-      showAlternativeButton.value = true
-    }
-  }, 3000)
+  if (isClient) {
+    setTimeout(() => {
+      const container = document.getElementById('telegram-login-container')
+      if (container && container.children.length === 0) {
+        showAlternativeButton.value = true
+      }
+    }, 3000)
+  }
 })
 </script>
 

@@ -1,7 +1,6 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-medium overflow-hidden w-full max-w-md border border-gray-200">
-      <!-- Верхняя полоса акцентного цвета -->
       <div class="h-2 bg-accent-500"></div>
       
       <div class="p-8">
@@ -13,6 +12,14 @@
           </div>
           <h1 class="text-2xl font-bold text-gray-800 mb-2">Завершите регистрацию</h1>
           <p class="text-gray-600">Заполните ваши данные</p>
+        </div>
+
+        <!-- Информация о Telegram пользователе -->
+        <div v-if="telegramUser" class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <p class="text-sm font-medium text-blue-700 mb-1">Ваш Telegram аккаунт:</p>
+          <p class="text-blue-600">{{ telegramUser.first_name }} {{ telegramUser.last_name }}</p>
+          <p v-if="telegramUser.username" class="text-sm text-blue-500">@{{ telegramUser.username }}</p>
+          <p class="text-xs text-gray-500 mt-1">ID: {{ telegramUser.id }}</p>
         </div>
 
         <form @submit.prevent="completeRegistration" class="space-y-6">
@@ -68,6 +75,14 @@
             {{ loading ? 'Сохранение...' : 'Завершить регистрацию' }}
           </button>
         </form>
+
+        <!-- Кнопка назад -->
+        <button
+          @click="goBackToAuth"
+          class="w-full mt-4 text-gray-600 hover:text-gray-800 py-2 text-sm"
+        >
+          ← Назад к авторизации
+        </button>
       </div>
     </div>
   </div>
@@ -78,6 +93,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from '#app'
 
 const router = useRouter()
+const isClient = typeof window !== 'undefined'
+
+const telegramUser = ref(null)
 const form = ref({
   fio: '',
   department: ''
@@ -89,116 +107,118 @@ const isFormValid = computed(() => {
          form.value.department.length > 0
 })
 
+const goBackToAuth = () => {
+  // Очищаем временные данные
+  if (isClient) {
+    localStorage.removeItem('telegram_register_data')
+  }
+  router.push('/auth')
+}
+
 const completeRegistration = async () => {
   if (!isFormValid.value || loading.value) return
   
   loading.value = true
 
-  // Получаем данные Telegram из localStorage
-  let telegramData = null
-  if (process.client) {
-    const userStr = localStorage.getItem('telegram_user')
-    if (userStr) {
-      telegramData = JSON.parse(userStr)
-    }
-  }
-
-  if (!telegramData) {
-    console.error('Нет данных Telegram')
-    await router.push('/auth')
+  if (!telegramUser.value) {
+    alert('Ошибка: данные Telegram не найдены')
     loading.value = false
     return
   }
 
-  // Создаем полные данные пользователя
+  // Подготавливаем данные для API
   const userData = {
-    telegram_id: telegramData.telegram_id,
-    first_name: telegramData.first_name,
-    last_name: telegramData.last_name || '',
-    username: telegramData.username || '',
-    photo_url: telegramData.photo_url || '',
+    telegram_id: Number(telegramUser.value.id),
+    first_name: telegramUser.value.first_name || '',
+    last_name: telegramUser.value.last_name || '',
+    username: telegramUser.value.username || '',
+    photo_url: telegramUser.value.photo_url || '',
     fio: form.value.fio.trim(),
     department: form.value.department,
-    is_admin: telegramData.is_admin || false
+    is_admin: false // Новые пользователи не админы
   }
 
   try {
-    // Сохраняем через API
-    const response = await fetch('/api/users/register', {
+    console.log('📤 Отправка данных регистрации:', userData)
+    
+    // Используем ваш существующий API endpoint
+    const response = await $fetch('/api/users/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData)
+      body: userData
     })
     
-    const result = await response.json()
-    console.log('Результат регистрации:', result)
+    console.log('✅ Результат регистрации:', response)
 
-    if (result.success) {
-      // Сохраняем в localStorage
-      localStorage.setItem('user', JSON.stringify(result.user))
-      localStorage.setItem('user_id', result.user.id.toString())
-      localStorage.setItem('user_fio', result.user.fio)
-      localStorage.setItem('user_department', result.user.department)
-      localStorage.setItem('telegram_id', result.user.telegram_id.toString())
-      localStorage.setItem('is_admin', result.user.is_admin.toString())
+    if (response.success) {
+      // Сохраняем пользователя в localStorage
+      localStorage.setItem('user', JSON.stringify(response.user))
+      localStorage.setItem('is_admin', 'false')
+      localStorage.setItem('user_id', response.user.id.toString())
+      
+      // Очищаем временные данные
+      localStorage.removeItem('telegram_register_data')
+      localStorage.removeItem('telegram_auth_data')
+      
+      alert('🎉 Регистрация успешно завершена!')
       
       // Перенаправляем в кабинет
       setTimeout(() => {
-        router.push(result.user.is_admin ? '/admin' : '/cabinet')
-      }, 300)
+        router.push('/cabinet')
+      }, 500)
     } else {
-      alert('Ошибка регистрации: ' + (result.message || 'Неизвестная ошибка'))
+      alert('❌ Ошибка регистрации: ' + (response.message || 'Неизвестная ошибка'))
       loading.value = false
     }
   } catch (error) {
-    console.error('Ошибка сохранения:', error)
-    
-    // Если API не работает, сохраняем в localStorage и идем дальше
-    if (process.client) {
-      const fallbackUser = {
-        id: Date.now(),
-        telegram_id: telegramData.telegram_id,
-        fio: form.value.fio.trim(),
-        department: form.value.department,
-        is_admin: telegramData.is_admin || false
-      }
-      
-      localStorage.setItem('user', JSON.stringify(fallbackUser))
-      localStorage.setItem('user_id', fallbackUser.id.toString())
-      localStorage.setItem('user_fio', form.value.fio.trim())
-      localStorage.setItem('user_department', form.value.department)
-      localStorage.setItem('telegram_id', telegramData.telegram_id.toString())
-      localStorage.setItem('is_admin', (telegramData.is_admin || false).toString())
-    }
-    
-    // Перенаправляем
-    setTimeout(() => {
-      router.push(telegramData.is_admin ? '/admin' : '/cabinet')
-    }, 300)
+    console.error('💥 Ошибка сохранения:', error)
+    alert('❌ Ошибка при сохранении данных. Попробуйте снова.')
+    loading.value = false
   }
 }
 
 onMounted(() => {
-  // Проверяем, есть ли данные Telegram
-  if (process.client) {
-    const telegramUser = localStorage.getItem('telegram_user')
-    if (!telegramUser) {
-      router.push('/auth')
-      return
+  if (!isClient) return
+
+  console.log('🔍 Проверка данных регистрации...')
+  
+  // Получаем данные Telegram для регистрации
+  const telegramRegisterData = localStorage.getItem('telegram_register_data')
+  
+  console.log('📦 Данные из localStorage:', telegramRegisterData)
+  
+  if (!telegramRegisterData) {
+    console.error('❌ Данные для регистрации не найдены')
+    alert('Данные для регистрации не найдены. Пожалуйста, авторизуйтесь через Telegram.')
+    router.push('/auth')
+    return
+  }
+
+  try {
+    const data = JSON.parse(telegramRegisterData)
+    console.log('📋 Парсинг данных:', data)
+    
+    telegramUser.value = {
+      id: data.id,
+      first_name: data.first_name || '',
+      last_name: data.last_name || '',
+      username: data.username || '',
+      photo_url: data.photo_url || ''
     }
     
-    // Пробуем заполнить ФИО из Telegram данных
-    try {
-      const user = JSON.parse(telegramUser)
-      if (user.first_name || user.last_name) {
-        const telegramName = `${user.first_name || ''} ${user.last_name || ''}`.trim()
-        if (telegramName) {
-          form.value.fio = telegramName
-        }
+    console.log('👤 Telegram пользователь:', telegramUser.value)
+    
+    // Автозаполняем ФИО из Telegram данных
+    if (telegramUser.value.first_name || telegramUser.value.last_name) {
+      const telegramName = `${telegramUser.value.first_name || ''} ${telegramUser.value.last_name || ''}`.trim()
+      if (telegramName && !form.value.fio) {
+        form.value.fio = telegramName
+        console.log('✏️ Автозаполнение ФИО:', telegramName)
       }
-    } catch (error) {
-      console.error('Ошибка парсинга Telegram данных:', error)
     }
+  } catch (error) {
+    console.error('❌ Ошибка парсинга Telegram данных:', error)
+    alert('Ошибка загрузки данных регистрации')
+    router.push('/auth')
   }
 })
 </script>

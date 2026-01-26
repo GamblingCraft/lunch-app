@@ -3,8 +3,10 @@ import { useRouter } from '#imports'
 
 const router = useRouter()
 
+const isClient = typeof window !== 'undefined'
+
 const checkLocalStorage = () => {
-  if (process.client) {
+  if (isClient) {
     console.log('📦 LocalStorage содержимое:')
     console.log('telegram_auth_data:', localStorage.getItem('telegram_auth_data'))
     console.log('user:', localStorage.getItem('user'))
@@ -13,7 +15,7 @@ const checkLocalStorage = () => {
 }
 
 onMounted(async () => {
-  if (!process.client) return
+  if (!isClient) return
 
   try {
     console.log('📞 Callback page mounted')
@@ -105,7 +107,7 @@ onMounted(async () => {
     </div>
     
     <!-- Debug info -->
-    <div v-if="process.client" class="mt-8 p-4 bg-gray-100 rounded-lg max-w-md">
+    <div v-if="isClient" class="mt-8 p-4 bg-gray-100 rounded-lg max-w-md">
       <p class="text-sm font-medium text-gray-700 mb-2">Отладка:</p>
       <p class="text-xs text-gray-600">URL Params: {{ window.location.search }}</p>
       <button 
