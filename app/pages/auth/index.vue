@@ -56,7 +56,9 @@ const checkBotStatus = () => {
         <!-- Telegram -->
         <div class="mb-6 p-4">
           <div class="mt-3">
-            <TelegramLoginButton />
+              <ClientOnly>
+                <TelegramLoginButton />
+              </ClientOnly>
           </div>
         </div>
 
