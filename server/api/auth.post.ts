@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   // ─────────────────────────────
   // Telegram signature validation
   // ─────────────────────────────
-  const botToken = process.env.NUXT_PUBLIC_TELEGRAM_BOT_TOKEN || '8208807830:AAFz6ESQXnZx-rQWslr5tFh9X-m-E0gom3g'
+  const botToken = '8208807830:AAFz6ESQXnZx-rQWslr5tFh9X-m-E0gom3g'
   
   if (!botToken) {
     console.error('Bot token not set')
@@ -69,11 +69,14 @@ export default defineEventHandler(async (event) => {
   console.log('Telegram hash validated successfully')
 
   // ─────────────────────────────
-  // Read users.json
+  // Read users.json from project root
   // ─────────────────────────────
-  const usersPath = path.resolve(process.cwd(), 'data/users/users.json')
+  const projectRoot = process.cwd()
+  const usersPath = path.join(projectRoot, 'data', 'users', 'users.json')
   
   console.log('Looking for users file at:', usersPath)
+  console.log('Current working directory:', projectRoot)
+  console.log('File exists?', fs.existsSync(usersPath))
 
   if (!fs.existsSync(usersPath)) {
     console.log('Users file not found, creating directory...')
@@ -82,13 +85,24 @@ export default defineEventHandler(async (event) => {
     const dirPath = path.dirname(usersPath)
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true })
+      console.log('Created directory:', dirPath)
     }
     
     // Create empty users file
     fs.writeFileSync(usersPath, JSON.stringify([], null, 2))
     
     console.log('Users file created, user is new')
-    return { status: 'new', telegramId }
+    return { 
+      status: 'new', 
+      telegramId: telegramId,
+      telegramData: {
+        id: body.id,
+        first_name: body.first_name,
+        last_name: body.last_name,
+        username: body.username,
+        photo_url: body.photo_url
+      }
+    }
   }
 
   let users = []
@@ -96,46 +110,54 @@ export default defineEventHandler(async (event) => {
     const usersContent = fs.readFileSync(usersPath, 'utf-8')
     users = JSON.parse(usersContent)
     console.log('Loaded users:', users.length)
+    console.log('Users in file:', users)
   } catch (error) {
     console.error('Error reading users file:', error)
-    return { status: 'new', telegramId }
+    return { 
+      status: 'new', 
+      telegramId: telegramId,
+      telegramData: body
+    }
   }
 
-  // Find user - ищем по telegram_id
-  const user = users.find(
-    (u: any) => Number(u.telegram_id) === telegramId
-  )
+  // Find user - ищем по telegram_id (string vs number)
+  const user = users.find((u: any) => {
+    const userId = u.telegram_id || u.telegramId || u.id
+    console.log(`Checking user: ${userId} (${typeof userId}) vs ${telegramId} (${typeof telegramId})`)
+    return Number(userId) === telegramId
+  })
 
   console.log('Found user:', user)
 
   if (!user) {
-    console.log('User not found, needs registration')
-    return { status: 'new', telegramId, telegramData: body }
+    console.log('User not found in users.json, needs registration')
+    return { 
+      status: 'new', 
+      telegramId: telegramId,
+      telegramData: {
+        id: body.id,
+        first_name: body.first_name,
+        last_name: body.last_name,
+        username: body.username,
+        photo_url: body.photo_url
+      }
+    }
   }
 
-  // Create session (если используете nuxt-auth или сессии)
-  const session = {
-    user: {
-      id: user.id,
-      telegram_id: user.telegram_id,
-      username: user.username,
-      first_name: user.first_name,
-      last_name: user.last_name,
-      fio: user.fio,
-      department: user.department,
-      is_admin: user.is_admin,
-      photo_url: body.photo_url || user.photo_url
-    },
-    loggedInAt: new Date().toISOString()
+  // Create user response
+  const userResponse = {
+    id: user.id,
+    telegram_id: user.telegram_id,
+    username: user.username,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    fio: user.fio,
+    department: user.department,
+    is_admin: user.is_admin === true,
+    photo_url: body.photo_url || user.photo_url
   }
 
-  // Set session cookie (пример)
-  setCookie(event, 'auth_token', JSON.stringify(session), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 60 * 60 * 24 * 7 // 1 неделя
-  })
+  console.log('User response:', userResponse)
 
   // Return role
   if (user.is_admin === true) {
@@ -143,7 +165,7 @@ export default defineEventHandler(async (event) => {
     return { 
       status: 'ok', 
       role: 'admin',
-      user: session.user
+      user: userResponse
     }
   }
 
@@ -151,6 +173,6 @@ export default defineEventHandler(async (event) => {
   return { 
     status: 'ok', 
     role: 'user',
-    user: session.user
+    user: userResponse
   }
 })

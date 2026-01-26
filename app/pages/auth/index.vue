@@ -45,7 +45,7 @@
           <p class="text-xs text-gray-500 mb-1">Отладка:</p>
           <p class="text-xs text-gray-600">Bot ID: {{ botId }}</p>
           <p class="text-xs text-gray-600">Bot Name: {{ botName }}</p>
-          <p class="text-xs text-gray-600 truncate">Callback URL: {{ siteUrl }}/callback</p>
+          <p class="text-xs text-gray-600 truncate">Callback URL: {{ siteUrl }}/auth/callback</p>
           <button 
             @click="checkBotStatus"
             class="mt-2 px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
@@ -75,10 +75,8 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { onMounted } from 'vue'
-import { useAuth } from '#imports' // Nuxt 4 автоматически импортирует composables
 
 const router = useRouter()
-const auth = useAuth()
 
 // Telegram bot credentials
 const botId = '8208807830'
@@ -92,6 +90,8 @@ const initTelegramLogin = () => {
   if (!process.client) return
 
   console.log('Initializing Telegram login widget...')
+  console.log('Site URL:', siteUrl)
+  console.log('Callback URL:', `${siteUrl}/auth/callback`)
 
   // Clear previous script
   const existingScript = document.getElementById('telegram-login-script')
@@ -115,7 +115,7 @@ const initTelegramLogin = () => {
   script.setAttribute('data-radius', '8')
   script.setAttribute('data-request-access', 'write')
   script.setAttribute('data-userpic', 'true')
-  script.setAttribute('data-auth-url', `${siteUrl}/callback`)
+  script.setAttribute('data-auth-url', `${siteUrl}/auth/callback`) // ← ВАЖНО!
   script.setAttribute('data-bot-id', botId)
 
   // Add to container
@@ -133,9 +133,8 @@ const initTelegramLogin = () => {
           <p class="text-red-600 font-medium">Ошибка загрузки Telegram виджета</p>
           <p class="text-red-500 text-sm mt-1">Проверьте подключение к интернету</p>
           <a 
-            href="https://oauth.telegram.org/auth?bot_id=${botId}&origin=${encodeURIComponent(siteUrl)}&request_access=write"
+            href="https://oauth.telegram.org/auth?bot_id=${botId}&origin=${encodeURIComponent(siteUrl)}&request_access=write&return_to=${encodeURIComponent(siteUrl + '/auth/callback')}"
             class="mt-3 inline-block px-4 py-2 bg-[#0088cc] text-white rounded-lg hover:bg-[#0077b3] transition-colors text-sm"
-            target="_blank"
           >
             Войти через Telegram
           </a>
@@ -149,9 +148,8 @@ const initTelegramLogin = () => {
  * Тестовые входы
  */
 const loginAsAdmin = () => {
-  // Используйте telegram_id из вашего users.json: 123456789
   const testAdminData = {
-    id: '123456789',
+    id: '123456789', // telegram_id из вашего users.json
     first_name: 'Администратор',
     last_name: 'Тест',
     username: 'admin_test',
@@ -161,13 +159,12 @@ const loginAsAdmin = () => {
   }
   
   const params = new URLSearchParams(testAdminData)
-  router.push(`/callback?${params.toString()}`)
+  router.push(`/auth/callback?${params.toString()}`)
 }
 
 const loginAsUser = () => {
-  // Используйте telegram_id из вашего users.json: 111222333
   const testUserData = {
-    id: '111222333',
+    id: '111222333', // telegram_id из вашего users.json
     first_name: 'Сотрудник',
     last_name: 'Тест',
     username: 'employee_test',
@@ -177,7 +174,7 @@ const loginAsUser = () => {
   }
   
   const params = new URLSearchParams(testUserData)
-  router.push(`/callback?${params.toString()}`)
+  router.push(`/auth/callback?${params.toString()}`)
 }
 
 /**
@@ -188,8 +185,21 @@ const checkBotStatus = () => {
   console.log('Bot ID:', botId)
   console.log('Bot Name:', botName)
   console.log('Site URL:', siteUrl)
+  console.log('Callback URL:', `${siteUrl}/auth/callback`)
   
-  alert(`Статус бота:\n\nID: ${botId}\nИмя: ${botName}\n\nCallback URL:\n${siteUrl}/callback`)
+  // Проверка через Telegram API
+  fetch(`https://api.telegram.org/bot8208807830:AAFz6ESQXnZx-rQWslr5tFh9X-m-E0gom3g/getMe`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.ok) {
+        alert(`✅ Бот активен!\nИмя: ${data.result.first_name}\nUsername: @${data.result.username}`)
+      } else {
+        alert(`❌ Ошибка: ${data.description}`)
+      }
+    })
+    .catch(error => {
+      alert(`❌ Ошибка сети: ${error.message}`)
+    })
 }
 
 // Инициализируем при монтировании
