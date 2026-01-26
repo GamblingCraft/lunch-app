@@ -8,82 +8,65 @@
   </div>
 </template>
 
-<script setup>
-import { onMounted, ref } from 'vue'
+<<script setup>
+import { onMounted } from 'vue'
 import { useRouter } from '#app'
+import { useAuthStore } from '~/stores/auth'
 
 const router = useRouter()
-const message = ref('Завершаем авторизацию...')
+const authStore = useAuthStore()
 
 onMounted(async () => {
   if (!process.client) return
 
   try {
-    // 1. Забираем hash от Telegram
-    const hashString = window.location.hash.replace('#', '')
-    const params = new URLSearchParams(hashString)
+    const hash = window.location.hash.replace('#', '')
+    const params = new URLSearchParams(hash)
 
     const authData = {
-      id: params.get('id'),
+      telegram_id: params.get('id'),
       first_name: params.get('first_name'),
       last_name: params.get('last_name') || '',
       username: params.get('username') || '',
-      photo_url: params.get('photo_url') || '',
-      auth_date: params.get('auth_date'),
-      hash: params.get('hash')
+      photo_url: params.get('photo_url') || ''
     }
 
-    // 2. Минимальная проверка
-    if (!authData.id || !authData.first_name) {
-      message.value = 'Ошибка авторизации. Повторите вход.'
-      setTimeout(() => router.push('/auth'), 1000)
-      return
+    if (!authData.telegram_id || !authData.first_name) {
+      return router.push('/auth')
     }
 
-    // 3. Сохраняем Telegram-данные
-    const telegramUser = {
-      telegram_id: authData.id,
+    // Проверяем пользователя
+    const res = await fetch(`/api/users/check?telegram_id=${authData.telegram_id}`)
+    const result = await res.json()
+
+    if (result?.success && result.user) {
+      // 🔥 ВАЖНО: кладём пользователя в Pinia
+      authStore.setUser(result.user)
+
+      // пользователь есть, но не заполнен
+      if (!result.user.fio || !result.user.department) {
+        return router.push('/register')
+      }
+
+      // полный профиль
+      return router.push(result.user.is_admin ? '/admin' : '/cabinet')
+    }
+
+    // новый пользователь
+    authStore.setUser({
+      telegram_id: authData.telegram_id,
       first_name: authData.first_name,
       last_name: authData.last_name,
       username: authData.username,
-      photo_url: authData.photo_url
-    }
+      photo_url: authData.photo_url,
+      is_admin: false
+    })
 
-    localStorage.setItem('telegram_user', JSON.stringify(telegramUser))
-    localStorage.setItem('telegram_id', authData.id.toString())
-
-    // 4. Проверяем пользователя в системе
-    const res = await fetch(`/api/users/check?telegram_id=${authData.id}`)
-    const result = await res.json()
-
-    // 5. Роутинг — ГАРАНТИРОВАННЫЙ
-    if (result?.success && result.user) {
-      // пользователь есть
-      localStorage.setItem('user', JSON.stringify(result.user))
-      localStorage.setItem('user_id', result.user.id.toString())
-
-      if (result.user.fio) {
-        localStorage.setItem('user_fio', result.user.fio)
-      }
-      if (result.user.department) {
-        localStorage.setItem('user_department', result.user.department)
-      }
-
-      message.value = 'Вход выполнен. Переходим…'
-
-      setTimeout(() => {
-        router.push(result.user.is_admin ? '/admin' : '/cabinet')
-      }, 500)
-    } else {
-      // новый пользователь
-      message.value = 'Переходим к регистрации…'
-      setTimeout(() => router.push('/register'), 500)
-    }
+    return router.push('/register')
 
   } catch (e) {
-    console.error('Telegram callback error:', e)
-    message.value = 'Ошибка. Возврат к авторизации…'
-    setTimeout(() => router.push('/auth'), 1000)
+    console.error('Auth callback error:', e)
+    return router.push('/auth')
   }
 })
-</script>
+</>
