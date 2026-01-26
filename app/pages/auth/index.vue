@@ -103,22 +103,17 @@ const checkBotConfiguration = () => {
 
 // Универсальный Telegram OAuth URL
 const telegramAuthUrl = computed(() => {
-  if (!botId.value) return '#'
-  
-  // Пробуем разные варианты origin
-  const origins = [
-    'http://127.0.0.1',
-    'http://localhost',
-    'http://localhost:3000',
-    currentUrl.value
-  ]
-  
+  if (!botId.value || !currentUrl.value) return '#'
+
+  const origin = currentUrl.value
   const returnTo = `${currentUrl.value}/auth/callback`
-  
-  // Пробуем первый вариант, который должен работать
-  const origin = origins[0]
-  
-  return `https://oauth.telegram.org/auth?bot_id=${botId.value}&origin=${encodeURIComponent(origin)}&request_access=write&return_to=${encodeURIComponent(returnTo)}&lang=ru`
+
+  return `https://oauth.telegram.org/auth` +
+    `?bot_id=${botId.value}` +
+    `&origin=${encodeURIComponent(origin)}` +
+    `&request_access=write` +
+    `&return_to=${encodeURIComponent(returnTo)}` +
+    `&lang=ru`
 })
 
 const openTelegramAuth = () => {
