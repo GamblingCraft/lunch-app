@@ -34,22 +34,5 @@ export default defineNuxtConfig({
     }
   },
 
-  nitro: {
-    routeRules: {
-      '/**': {
-        headers: {
-          'Content-Security-Policy': [
-            "default-src 'self'",
-            "script-src 'self' https://telegram.org",
-            "frame-src https://telegram.org https://oauth.telegram.org",
-            "img-src 'self' https://telegram.org data:",
-            "connect-src 'self' https://telegram.org",
-            "style-src 'self' 'unsafe-inline'"
-          ].join('; ')
-        }
-      }
-    }
-  },
-
   devtools: { enabled: true }
 })
