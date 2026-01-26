@@ -58,7 +58,7 @@
           <p class="text-xs text-gray-500 mb-1">Отладка:</p>
           <p class="text-xs text-gray-600">Bot ID: {{ botId }}</p>
           <p class="text-xs text-gray-600">Bot Name: {{ botName }}</p>
-          <p v-if="isClient" class="text-xs text-gray-600 truncate">Callback URL: {{ siteUrl }}/auth/callback</p>
+          <p v-if="isClient && siteUrl" class="text-xs text-gray-600 truncate">Callback URL: {{ siteUrl }}/auth/callback</p>
           <p class="text-xs text-gray-600">User ID: 221349731 (ваш)</p>
           <button 
             @click="checkBotStatus"
