@@ -6,7 +6,6 @@ export default defineEventHandler(async (event) => {
   try {
     const ordersFilePath = path.join(process.cwd(), 'data', 'orders.json')
     
-    console.log('Проверяем файл заказов:', ordersFilePath)
     
     if (!fs.existsSync(ordersFilePath)) {
       console.log('Файл заказов не найден')

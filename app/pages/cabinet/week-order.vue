@@ -182,21 +182,8 @@
           
           <p class="text-gray-600 mb-6">
             Администратор еще не добавил меню на неделю {{ nextWeek.week_period }}.
-            Файл меню: <code class="bg-gray-100 px-2 py-1 rounded text-sm">data/menu/{{ nextWeek.week_code }}.json</code>
           </p>
-          
-          <div class="bg-gray-50 rounded-lg p-4 mb-6">
-            <p class="text-sm text-gray-700 font-medium mb-2">Текущая структура файлов меню:</p>
-            <div class="text-left space-y-1 text-sm text-gray-600">
-              <div v-for="file in menuFiles" :key="file" class="flex items-center">
-                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                <span>{{ file }}</span>
-              </div>
-            </div>
-          </div>
-          
+            
           <button 
             @click="goBack"
             class="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"

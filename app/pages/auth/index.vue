@@ -12,30 +12,17 @@
             </svg>
           </div>
           <h1 class="text-2xl font-bold text-gray-800 mb-2">Авторизация</h1>
-          <p class="text-gray-600 mb-2">Войдите через Telegram</p>
-          <p class="text-sm text-gray-500 mb-4">Бот: @{{ botName || 'не указан' }}</p>
-          
-          <!-- Индикатор настроек -->
-          <div class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-            </svg>
-            Бот настроен
-          </div>
+
         </div>
 
-        <!-- Инструкция -->
-        <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <div class="mb-6 p-4">
           <div class="mt-3">
             <button 
               @click="openTelegramAuth"
               class="w-full px-4 py-2 bg-[#0088cc] text-white rounded-lg hover:bg-[#0077b3] transition-colors text-sm"
             >
-              Открыть Telegram OAuth
+              Войти через Telegram
             </button>
-            <p class="text-xs text-blue-500 mt-1">
-              Если появляется "Bot domain invalid", проверьте настройки в @BotFather
-            </p>
           </div>
         </div>
 
