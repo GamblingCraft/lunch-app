@@ -1,14 +1,12 @@
 <template>
   <div class="min-h-screen flex items-center justify-center">
-    <div class="text-center">
-      <p class="text-lg font-medium text-gray-700">
-        {{ message }}
-      </p>
-    </div>
+    <p class="text-gray-600 text-lg">
+      Завершаем авторизацию…
+    </p>
   </div>
 </template>
 
-<<script setup>
+<script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRouter } from '#app'
 import { useAuthStore } from '~/stores/auth'
@@ -35,20 +33,17 @@ onMounted(async () => {
       return router.push('/auth')
     }
 
-    // Проверяем пользователя
     const res = await fetch(`/api/users/check?telegram_id=${authData.telegram_id}`)
     const result = await res.json()
 
     if (result?.success && result.user) {
-      // 🔥 ВАЖНО: кладём пользователя в Pinia
+      // 🔥 КЛЮЧЕВОЕ МЕСТО
       authStore.setUser(result.user)
 
-      // пользователь есть, но не заполнен
       if (!result.user.fio || !result.user.department) {
         return router.push('/register')
       }
 
-      // полный профиль
       return router.push(result.user.is_admin ? '/admin' : '/cabinet')
     }
 
@@ -65,8 +60,8 @@ onMounted(async () => {
     return router.push('/register')
 
   } catch (e) {
-    console.error('Auth callback error:', e)
+    console.error('Telegram callback error:', e)
     return router.push('/auth')
   }
 })
-</>
+</script>
