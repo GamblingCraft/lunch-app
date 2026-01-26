@@ -4,13 +4,17 @@ import { useRouter } from '#imports'
 const router = useRouter()
 
 const checkLocalStorage = () => {
-  console.log('📦 LocalStorage содержимое:')
-  console.log('telegram_auth_data:', localStorage.getItem('telegram_auth_data'))
-  console.log('user:', localStorage.getItem('user'))
-  alert('Проверьте консоль браузера (F12)')
+  if (process.client) {
+    console.log('📦 LocalStorage содержимое:')
+    console.log('telegram_auth_data:', localStorage.getItem('telegram_auth_data'))
+    console.log('user:', localStorage.getItem('user'))
+    alert('Проверьте консоль браузера (F12)')
+  }
 }
 
 onMounted(async () => {
+  if (!process.client) return
+
   try {
     console.log('📞 Callback page mounted')
     console.log('📋 URL params:', window.location.search)
@@ -101,7 +105,7 @@ onMounted(async () => {
     </div>
     
     <!-- Debug info -->
-    <div class="mt-8 p-4 bg-gray-100 rounded-lg max-w-md">
+    <div v-if="process.client" class="mt-8 p-4 bg-gray-100 rounded-lg max-w-md">
       <p class="text-sm font-medium text-gray-700 mb-2">Отладка:</p>
       <p class="text-xs text-gray-600">URL Params: {{ window.location.search }}</p>
       <button 

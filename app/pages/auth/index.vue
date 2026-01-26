@@ -19,6 +19,19 @@
           <div class="mt-3">
             <div id="telegram-login-container"></div>
           </div>
+          
+          <!-- Альтернативная кнопка на случай проблем с виджетом -->
+          <div v-if="showAlternativeButton" class="mt-4">
+            <a 
+              :href="telegramAuthUrl"
+              class="block w-full px-4 py-3 bg-[#0088cc] text-white rounded-lg hover:bg-[#0077b3] transition-colors text-center text-sm font-medium"
+            >
+              Войти через Telegram
+            </a>
+            <p class="text-xs text-gray-500 mt-2 text-center">
+              (Альтернативный способ)
+            </p>
+          </div>
         </div>
 
         <!-- Тестовые кнопки -->
@@ -46,6 +59,7 @@
           <p class="text-xs text-gray-600">Bot ID: {{ botId }}</p>
           <p class="text-xs text-gray-600">Bot Name: {{ botName }}</p>
           <p class="text-xs text-gray-600 truncate">Callback URL: {{ siteUrl }}/auth/callback</p>
+          <p class="text-xs text-gray-600">User ID: 221349731 (ваш)</p>
           <button 
             @click="checkBotStatus"
             class="mt-2 px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
@@ -72,16 +86,27 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 
 const router = useRouter()
 
 // Telegram bot credentials
 const botId = '8208807830'
 const botName = 'et_lunch_web_bot'
-const siteUrl = window.location.origin
+const siteUrl = ref('')
+const showAlternativeButton = ref(false)
+
+// Telegram OAuth URL для альтернативной кнопки
+const telegramAuthUrl = ref('')
+
+const initSiteUrl = () => {
+  if (process.client) {
+    siteUrl.value = window.location.origin
+    telegramAuthUrl.value = `https://oauth.telegram.org/auth?bot_id=${botId}&origin=${encodeURIComponent(siteUrl.value)}&request_access=write&return_to=${encodeURIComponent(siteUrl.value + '/auth/callback')}`
+  }
+}
 
 /**
  * Telegram login via script
@@ -90,8 +115,8 @@ const initTelegramLogin = () => {
   if (!process.client) return
 
   console.log('Initializing Telegram login widget...')
-  console.log('Site URL:', siteUrl)
-  console.log('Callback URL:', `${siteUrl}/auth/callback`)
+  console.log('Site URL:', siteUrl.value)
+  console.log('Callback URL:', `${siteUrl.value}/auth/callback`)
 
   // Clear previous script
   const existingScript = document.getElementById('telegram-login-script')
@@ -115,7 +140,7 @@ const initTelegramLogin = () => {
   script.setAttribute('data-radius', '8')
   script.setAttribute('data-request-access', 'write')
   script.setAttribute('data-userpic', 'true')
-  script.setAttribute('data-auth-url', `${siteUrl}/auth/callback`) // ← ВАЖНО!
+  script.setAttribute('data-auth-url', `${siteUrl.value}/auth/callback`)
   script.setAttribute('data-bot-id', botId)
 
   // Add to container
@@ -124,20 +149,21 @@ const initTelegramLogin = () => {
     containerEl.appendChild(script)
   }
 
+  script.onload = () => {
+    console.log('Telegram widget loaded successfully')
+    showAlternativeButton.value = false
+  }
+
   script.onerror = (error) => {
     console.error('Failed to load Telegram widget:', error)
+    showAlternativeButton.value = true
+    
     const container = document.getElementById('telegram-login-container')
     if (container) {
       container.innerHTML = `
-        <div class="text-center p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p class="text-red-600 font-medium">Ошибка загрузки Telegram виджета</p>
-          <p class="text-red-500 text-sm mt-1">Проверьте подключение к интернету</p>
-          <a 
-            href="https://oauth.telegram.org/auth?bot_id=${botId}&origin=${encodeURIComponent(siteUrl)}&request_access=write&return_to=${encodeURIComponent(siteUrl + '/auth/callback')}"
-            class="mt-3 inline-block px-4 py-2 bg-[#0088cc] text-white rounded-lg hover:bg-[#0077b3] transition-colors text-sm"
-          >
-            Войти через Telegram
-          </a>
+        <div class="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p class="text-yellow-700 font-medium">Виджет не загрузился</p>
+          <p class="text-yellow-600 text-sm mt-1">Используйте альтернативную кнопку ниже</p>
         </div>
       `
     }
@@ -184,28 +210,25 @@ const checkBotStatus = () => {
   console.log('=== TELEGRAM BOT STATUS ===')
   console.log('Bot ID:', botId)
   console.log('Bot Name:', botName)
-  console.log('Site URL:', siteUrl)
-  console.log('Callback URL:', `${siteUrl}/auth/callback`)
+  console.log('Site URL:', siteUrl.value)
+  console.log('Callback URL:', `${siteUrl.value}/auth/callback`)
   
-  // Проверка через Telegram API
-  fetch(`https://api.telegram.org/bot8208807830:AAFz6ESQXnZx-rQWslr5tFh9X-m-E0gom3g/getMe`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.ok) {
-        alert(`✅ Бот активен!\nИмя: ${data.result.first_name}\nUsername: @${data.result.username}`)
-      } else {
-        alert(`❌ Ошибка: ${data.description}`)
-      }
-    })
-    .catch(error => {
-      alert(`❌ Ошибка сети: ${error.message}`)
-    })
+  alert(`Статус бота:\n\nID: ${botId}\nИмя: ${botName}\n\nВаш Telegram ID: 221349731\n\nCallback URL:\n${siteUrl.value}/auth/callback`)
 }
 
 // Инициализируем при монтировании
 onMounted(() => {
   console.log('Auth page mounted')
+  initSiteUrl()
   initTelegramLogin()
+  
+  // Показываем альтернативную кнопку если виджет не загрузился за 3 секунды
+  setTimeout(() => {
+    const container = document.getElementById('telegram-login-container')
+    if (container && container.children.length === 0) {
+      showAlternativeButton.value = true
+    }
+  }, 3000)
 })
 </script>
 
