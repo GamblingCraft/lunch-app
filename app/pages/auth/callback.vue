@@ -3,6 +3,13 @@ import { useRouter } from '#imports'
 
 const router = useRouter()
 
+const checkLocalStorage = () => {
+  console.log('📦 LocalStorage содержимое:')
+  console.log('telegram_auth_data:', localStorage.getItem('telegram_auth_data'))
+  console.log('user:', localStorage.getItem('user'))
+  alert('Проверьте консоль браузера (F12)')
+}
+
 onMounted(async () => {
   try {
     console.log('📞 Callback page mounted')
@@ -19,7 +26,13 @@ onMounted(async () => {
     console.log('📤 Sending to /api/auth...')
     const res: any = await $fetch('/api/auth', {
       method: 'POST',
-      body: telegramData
+      body: telegramData,
+      onRequestError({ error }: any) {
+        console.error('❌ Ошибка запроса:', error)
+      },
+      onResponseError({ response }: any) {
+        console.error('❌ Ошибка ответа:', response.status, response._data)
+      }
     })
 
     console.log('📥 Server response:', res)
@@ -62,7 +75,7 @@ onMounted(async () => {
 
     console.log('❓ Unknown role, redirecting to auth')
     await router.replace('/auth')
-  } catch (e) {
+  } catch (e: any) {
     console.error('💥 Auth error:', e)
     alert('Ошибка авторизации. Попробуйте снова.')
     await router.replace('/auth')
@@ -100,19 +113,6 @@ onMounted(async () => {
     </div>
   </div>
 </template>
-
-<script>
-export default {
-  methods: {
-    checkLocalStorage() {
-      console.log('📦 LocalStorage содержимое:')
-      console.log('telegram_auth_data:', localStorage.getItem('telegram_auth_data'))
-      console.log('user:', localStorage.getItem('user'))
-      alert('Проверьте консоль браузера (F12)')
-    }
-  }
-}
-</script>
 
 <style scoped>
 @keyframes spin {
