@@ -88,5 +88,23 @@
     "status": "replied",
     "seen_by_user": true,
     "seen_at": "2026-01-26T06:22:44.583Z"
+  },
+  {
+    "id": 1770003594597,
+    "user_id": 1769162269002,
+    "user_fio": "Дик Егор Владимирович",
+    "user_telegram_id": null,
+    "department": "Отдел маркетинга",
+    "rating": 5,
+    "message": "testim",
+    "reply": "testim2",
+    "reply_user_id": 1769162359485,
+    "reply_user_fio": "АдминОбед",
+    "reply_date": "2026-02-02T03:40:13.053Z",
+    "created_at": "2026-02-02T03:39:54.597Z",
+    "updated_at": "2026-02-02T03:40:13.053Z",
+    "status": "replied",
+    "seen_by_user": true,
+    "seen_at": "2026-02-02T03:40:49.275Z"
   }
 ]

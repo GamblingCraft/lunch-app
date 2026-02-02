@@ -201,6 +201,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from '#app'
+import { useAuthStore } from '@/stores/auth'
+
 
 interface User {
   id: number

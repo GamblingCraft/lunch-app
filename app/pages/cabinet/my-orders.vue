@@ -16,7 +16,7 @@
             <h1 class="text-xl font-semibold text-gray-800">Мои заказы</h1>
           </div>
           <div class="flex items-center space-x-4">
-            <span class="text-gray-600">{{ user.fio }}</span>
+            <span class="text-gray-600">{{ userFio }}</span>
           </div>
         </div>
       </div>
@@ -115,15 +115,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from '#app'
+import { useAuthStore } from '@/stores/auth'
 
-interface User {
-  id: number
-  fio: string
-  email: string
-  department: string
-  isAdmin: boolean
-}
+const router = useRouter()
+const authStore = useAuthStore()
 
 interface Week {
   week_code: string
@@ -141,13 +138,46 @@ interface Order {
   created_at: string
 }
 
-const router = useRouter()
-const user = ref<User>({
-  id: 0,
-  fio: '',
-  email: '',
-  department: '',
-  isAdmin: false
+// Используем computed свойство для получения данных пользователя из auth store
+const userFio = computed(() => {
+  if (authStore.user?.fio) {
+    return authStore.user.fio
+  }
+  
+  // Fallback: пробуем получить из localStorage
+  if (process.client) {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr)
+        return userData.fio || 'Сотрудник'
+      } catch {
+        return 'Сотрудник'
+      }
+    }
+  }
+  
+  return 'Сотрудник'
+})
+
+const userId = computed(() => {
+  if (authStore.user?.id) {
+    return authStore.user.id
+  }
+  
+  if (process.client) {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr)
+        return userData.id || 0
+      } catch {
+        return 0
+      }
+    }
+  }
+  
+  return 0
 })
 
 const currentOrder = ref<Order | null>(null)
@@ -156,20 +186,26 @@ const history = ref<Order[]>([])
 const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница']
 
 onMounted(async () => {
+  // Загружаем пользователя из store
   if (process.client) {
-    user.value.id = Number(localStorage.getItem('user_id')) || 0
-    user.value.fio = localStorage.getItem('user_fio') || 'Сотрудник'
+    authStore.loadUser()
   }
 
   try {
-    const response = await fetch(`/api/orders/my?userId=${user.value.id}`)
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success) {
-        currentOrder.value = data.currentOrder || null
-        currentWeek.value = data.currentWeek || null
-        history.value = data.history || []
+    // Используем userId из computed свойства
+    const currentUserId = userId.value
+    if (currentUserId) {
+      const response = await fetch(`/api/orders/my?userId=${currentUserId}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          currentOrder.value = data.currentOrder || null
+          currentWeek.value = data.currentWeek || null
+          history.value = data.history || []
+        }
       }
+    } else {
+      console.error('User ID not found')
     }
   } catch (error) {
     console.error('Ошибка загрузки заказов:', error)
@@ -202,7 +238,7 @@ const getOrderStatus = (day: string): string => {
     return 'Заказ получен'
   }
   
-  return 'Ожидается'
+  return
 }
 
 const goBack = () => {

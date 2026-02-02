@@ -53,6 +53,7 @@
               <option value="Отдел тестирования">Отдел тестирования</option>
               <option value="Отдел дизайна">Отдел дизайна</option>
               <option value="Отдел маркетинга">Отдел маркетинга</option>
+              <option value="Склад">Склад</option>
               <option value="Отдел продаж">Отдел продаж</option>
               <option value="Отдел поддержки">Отдел поддержки</option>
               <option value="Логистика">Логистика</option>

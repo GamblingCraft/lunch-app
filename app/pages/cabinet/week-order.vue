@@ -17,7 +17,10 @@
             <h1 class="text-xl font-semibold text-gray-800">Заказ на неделю</h1>
           </div>
           <div class="flex items-center space-x-4">
-            <span class="text-gray-600">{{ user.fio }}</span>
+            <span class="text-gray-600">{{ userFio }}</span>
+            <span v-if="userDepartment" class="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+              {{ userDepartment }}
+            </span>
           </div>
         </div>
       </div>
@@ -60,6 +63,7 @@
                 <strong>Как это работает:</strong> Вы выбираете блюда из меню на следующую неделю ({{ nextWeek.week_period }}). 
                 Заказ будет доступен только в среду и четверг текущей недели.
               </p>
+
             </div>
           </div>
         </div>
@@ -72,14 +76,43 @@
             :key="day"
             class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
           >
-            <!-- Заголовок дня -->
+            <!-- Заголовок дня с кнопкой ночной смены -->
             <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-              <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-800">{{ day }}</h3>
-                <span v-if="hasOrderForDay(day)" class="text-sm text-green-600">
-                  ✓ Заказ оформлен
-                </span>
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                  <h3 class="text-lg font-semibold text-gray-800">{{ day }}</h3>
+                  <span v-if="isDayNightShift(day)" class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full flex items-center">
+                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                    </svg>
+                    Ночная смена
+                  </span>
+                </div>
+                
+             <!-- Кнопка ночной смены -->
+              <div v-if="showNightShiftOption && hasOrderForDay(day)">
+                <button
+                  @click="toggleNightShiftForDay(day)"
+                  type="button"
+                  class="px-3 py-1.5 text-sm rounded-lg transition-all duration-200 flex items-center"
+                  :class="{
+                    'bg-blue-500 text-white hover:bg-blue-600': isDayNightShift(day),
+                    'bg-gray-200 text-gray-700 hover:bg-gray-300': !isDayNightShift(day)
+                  }"
+                >
+                  <!-- Меняем местами условия для иконок -->
+                  <svg v-if="isDayNightShift(day)" class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                  </svg>
+                  <svg v-else class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/>
+                  </svg>
+                  <!-- Меняем местами и текст -->
+                  {{ isDayNightShift(day) ? 'Ночная смена' : 'Дневная смена' }}
+                </button>
               </div>
+              </div>
+              
             </div>
 
             <!-- Блюда на день -->
@@ -96,28 +129,58 @@
                     <div 
                       v-for="dish in getDishes(day, category)" 
                       :key="dish"
-                      @click="toggleDish(day, category, dish)"
-                      class="cursor-pointer p-3 border rounded-lg transition-all duration-200"
-                      :class="{
-                        'border-accent-500 bg-accent-50 text-accent-800': isDishSelected(day, category, dish),
-                        'border-gray-200 hover:border-gray-300': !isDishSelected(day, category, dish)
-                      }"
+                      class="cursor-pointer"
                     >
-                      <div class="flex items-center justify-between">
-                        <span class="text-gray-800">{{ dish.replace(' (самост.)', '') }}</span>
-                        <svg 
-                          v-if="isDishSelected(day, category, dish)"
-                          class="w-5 h-5 text-accent-500" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          viewBox="0 0 24 24"
-                        >
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                        </svg>
+                      <div 
+                        @click="toggleDish(day, category, dish)"
+                        class="p-3 border rounded-lg transition-all duration-200"
+                        :class="{
+                          'border-accent-500 bg-accent-50': isDishSelected(day, category, dish),
+                          'border-gray-200 hover:border-gray-300': !isDishSelected(day, category, dish)
+                        }"
+                      >
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center space-x-2">
+                            <span class="text-gray-800 font-medium">{{ dish.replace(' (самост.)', '') }}</span>
+                          <span v-if="isDishSelected(day, category, dish) && isHalfPortion(day, category, dish)" 
+                                class="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded">
+                            ½ порции
+                          </span>
+                          </div>
+                          <div class="flex items-center space-x-2">
+                            <!-- Кнопка половинной порции -->
+                            <button
+                              v-if="isDishSelected(day, category, dish)"
+                              @click.stop="toggleHalfPortion(day, category)"
+                              type="button"
+                              class="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+                              :class="{
+                                'bg-purple-100 text-purple-600 hover:bg-purple-200': isHalfPortion(day, category),
+                                'bg-gray-100 text-gray-600 hover:bg-gray-200': !isHalfPortion(day, category)
+                              }"
+                              title="Половина порции (0.5 блюда)"
+                            >
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                              </svg>
+                            </button>
+                            <svg 
+                              v-if="isDishSelected(day, category, dish)"
+                              class="w-5 h-5 text-accent-500" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                          </div>
+                        </div>
+                        
+                        <!-- Метка самостоятельного блюда -->
+                        <p v-if="dish.includes('(самост.)')" class="text-xs text-accent-600 mt-1">
+                          Самостоятельное блюдо
+                        </p>
                       </div>
-                      <p v-if="dish.includes('(самост.)')" class="text-xs text-accent-600 mt-1">
-                        Самостоятельное блюдо
-                      </p>
                     </div>
                   </div>
                   
@@ -134,11 +197,25 @@
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <p class="text-gray-700 mb-1">
-                  Итого выбрано блюд: <strong class="text-lg">{{ totalSelectedDishes }}</strong>
+                  Итого выбрано блюд: <strong class="text-lg">{{ totalSelectedDishes.toFixed(1) }}</strong>
+                  <span v-if="nightShiftDaysCount > 0" class="ml-2 text-blue-600">
+                    (ночных дней: {{ nightShiftDaysCount }})
+                  </span>
+                </p>
+                <p class="text-sm text-gray-500">
+                  Полных порций: {{ fullPortionsCount }}, половинных: {{ halfPortionsCount }}
                 </p>
                 <p class="text-sm text-gray-500">
                   Заполнено дней: {{ selectedDaysCount }} из {{ days.length }}
                 </p>
+                <div v-if="showNightShiftOption && nightShiftDaysCount > 0" class="mt-2">
+                  <p class="text-sm text-blue-600">
+                    <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                    </svg>
+                    Дни ночной смены: {{ nightShiftDaysList.join(', ') }}
+                  </p>
+                </div>
               </div>
               
               <div class="flex items-center space-x-4">
@@ -201,9 +278,6 @@
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
           <p class="mt-2 text-gray-600">Загрузка меню...</p>
-          <p class="text-sm text-gray-500 mt-1">
-            Загрузка файла: data/menu/{{ nextWeek.week_code }}.json
-          </p>
         </div>
       </div>
     </main>
@@ -212,14 +286,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from '#app'
+import { useAuthStore } from '@/stores/auth'
 
-interface User {
-  id: number
-  fio: string
-  email: string
-  department: string
-  isAdmin: boolean
-}
+const router = useRouter()
+const authStore = useAuthStore()
 
 interface Week {
   week_code: string
@@ -233,19 +304,79 @@ interface Menu {
   }
 }
 
+interface SelectedDish {
+  dish: string
+  isNightShift?: boolean
+  isHalfPortion?: boolean // true = 0.5 порции, false/undefined = 1 порция
+}
+
 interface SelectedDishes {
   [day: string]: {
-    [category: string]: string
+    [category: string]: SelectedDish
+    _nightShift?: boolean // Флаг ночной смены для всего дня
   }
 }
 
-const router = useRouter()
-const user = ref<User>({
-  id: 0,
-  fio: '',
-  email: '',
-  department: '',
-  isAdmin: false
+// Используем computed свойство для получения данных пользователя из auth store
+const userFio = computed(() => {
+  if (authStore.user?.fio) {
+    return authStore.user.fio
+  }
+  
+  // Fallback: пробуем получить из localStorage
+  if (process.client) {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr)
+        return userData.fio || 'Сотрудник'
+      } catch {
+        return 'Сотрудник'
+      }
+    }
+  }
+  
+  return 'Сотрудник'
+})
+
+const userDepartment = computed(() => {
+  if (authStore.user?.department) {
+    return authStore.user.department
+  }
+  
+  if (process.client) {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr)
+        return userData.department || ''
+      } catch {
+        return ''
+      }
+    }
+  }
+  
+  return ''
+})
+
+const userId = computed(() => {
+  if (authStore.user?.id) {
+    return authStore.user.id
+  }
+  
+  if (process.client) {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr)
+        return userData.id || 0
+      } catch {
+        return 0
+      }
+    }
+  }
+  
+  return 0
 })
 
 const nextWeek = ref<Week>({
@@ -258,23 +389,21 @@ const menu = ref<Menu>({})
 const selectedDishes = ref<SelectedDishes>({})
 const saving = ref(false)
 const loading = ref(true)
-const menuFiles = ref<string[]>([])
 const currentWeekCode = ref('')
-const apiData = ref<any>({})
 
 const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница']
 const categories = ['Салат', 'Суп', 'Горячее', 'Гарнир']
 
+// Отделы, которым разрешена отметка ночной смены
+const nightShiftDepartments = ['Склад', 'Колл-центр', 'Охрана', 'Логистика', 'Отдел Маркетинга']
+
 // Вычисляемые свойства
 const currentDayOfWeek = computed(() => {
-  return new Date().getDay() // 0-воскресенье, 1-понедельник, 2-вторник, 3-среда, 4-четверг, 5-пятница, 6-суббота
+  return new Date().getDay()
 })
 
-// В ТЕСТОВОМ РЕЖИМЕ - разрешаем заказ всегда
 const isOrderOpen = computed(() => {
-  // Для тестов - всегда true
-  // На продакшене: return currentDayOfWeek.value === 3 || currentDayOfWeek.value === 4
-  return true
+  return true // Для тестов всегда открыт
 })
 
 const orderStatusText = computed(() => {
@@ -286,7 +415,6 @@ const orderStatusClass = computed(() => {
 })
 
 const hasMenu = computed(() => {
-  // Проверяем, есть ли хотя бы одно блюдо в меню
   for (const day of days) {
     for (const category of categories) {
       const dishes = menu.value[day]?.[category]
@@ -298,15 +426,80 @@ const hasMenu = computed(() => {
   return false
 })
 
+const showNightShiftOption = computed(() => {
+  return nightShiftDepartments.includes(userDepartment.value)
+})
+
+// Подсчет порций с учетом половинных
 const totalSelectedDishes = computed(() => {
   let count = 0
   for (const day of days) {
     const dayOrder = selectedDishes.value[day]
     if (dayOrder) {
-      count += Object.keys(dayOrder).length
+      // Не считаем служебное поле _nightShift
+      for (const category in dayOrder) {
+        if (category !== '_nightShift') {
+          const dish = dayOrder[category]
+          if (dish.isHalfPortion) {
+            count += 0.5 // Половина порции
+          } else {
+            count += 1 // Полная порция
+          }
+        }
+      }
     }
   }
   return count
+})
+
+const fullPortionsCount = computed(() => {
+  let count = 0
+  for (const day of days) {
+    const dayOrder = selectedDishes.value[day]
+    if (dayOrder) {
+      for (const category in dayOrder) {
+        if (category !== '_nightShift') {
+          const dish = dayOrder[category]
+          if (!dish.isHalfPortion) {
+            count++
+          }
+        }
+      }
+    }
+  }
+  return count
+})
+
+const halfPortionsCount = computed(() => {
+  let count = 0
+  for (const day of days) {
+    const dayOrder = selectedDishes.value[day]
+    if (dayOrder) {
+      for (const category in dayOrder) {
+        if (category !== '_nightShift') {
+          const dish = dayOrder[category]
+          if (dish.isHalfPortion) {
+            count++
+          }
+        }
+      }
+    }
+  }
+  return count
+})
+
+const nightShiftDaysCount = computed(() => {
+  let count = 0
+  for (const day of days) {
+    if (selectedDishes.value[day]?._nightShift) {
+      count++
+    }
+  }
+  return count
+})
+
+const nightShiftDaysList = computed(() => {
+  return days.filter(day => selectedDishes.value[day]?._nightShift)
 })
 
 const selectedDaysCount = computed(() => {
@@ -319,11 +512,26 @@ const getDishes = (day: string, category: string): string[] => {
 }
 
 const isDishSelected = (day: string, category: string, dish: string): boolean => {
-  return selectedDishes.value[day]?.[category] === dish
+  return selectedDishes.value[day]?.[category]?.dish === dish
+}
+
+const isHalfPortion = (day: string, category: string, dish: string): boolean => {
+  const selectedDish = selectedDishes.value[day]?.[category]
+  // Проверяем, что это именно выбранное блюдо и у него включена половинная порция
+  return selectedDish?.dish === dish && !!selectedDish?.isHalfPortion
+}
+
+const isDayNightShift = (day: string): boolean => {
+  return !!selectedDishes.value[day]?._nightShift
 }
 
 const hasOrderForDay = (day: string): boolean => {
-  return !!selectedDishes.value[day] && Object.keys(selectedDishes.value[day]).length > 0
+  const dayOrder = selectedDishes.value[day]
+  if (!dayOrder) return false
+  
+  // Проверяем, есть ли обычные блюда (не служебные поля)
+  const regularDishes = Object.keys(dayOrder).filter(key => key !== '_nightShift')
+  return regularDishes.length > 0
 }
 
 const toggleDish = (day: string, category: string, dish: string) => {
@@ -331,17 +539,41 @@ const toggleDish = (day: string, category: string, dish: string) => {
     selectedDishes.value[day] = {}
   }
   
-  if (selectedDishes.value[day][category] === dish) {
+  if (selectedDishes.value[day][category]?.dish === dish) {
     // Удаляем блюдо, если оно уже выбрано
     delete selectedDishes.value[day][category]
     
-    // Удаляем день из selectedDishes, если в нем нет выбранных блюд
-    if (Object.keys(selectedDishes.value[day]).length === 0) {
+    // Удаляем день если нет выбранных блюд и служебных полей
+    if (Object.keys(selectedDishes.value[day]).length === 0 || 
+        (Object.keys(selectedDishes.value[day]).length === 1 && '_nightShift' in selectedDishes.value[day])) {
       delete selectedDishes.value[day]
     }
   } else {
-    // Выбираем новое блюдо (заменяем старое, если было)
-    selectedDishes.value[day][category] = dish
+    // Выбираем новое блюдо (по умолчанию полная порция)
+    selectedDishes.value[day][category] = {
+      dish: dish,
+      isHalfPortion: false
+    }
+  }
+}
+
+const toggleHalfPortion = (day: string, category: string) => {
+  if (selectedDishes.value[day]?.[category]) {
+    selectedDishes.value[day][category].isHalfPortion = !selectedDishes.value[day][category].isHalfPortion
+  }
+}
+
+const toggleNightShiftForDay = (day: string) => {
+  if (!selectedDishes.value[day]) {
+    selectedDishes.value[day] = {}
+  }
+  
+  // Переключаем флаг ночной смены
+  selectedDishes.value[day]._nightShift = !selectedDishes.value[day]._nightShift
+  
+  // Если нет блюд, но есть флаг ночной смены - удаляем день
+  if (selectedDishes.value[day]._nightShift && !hasOrderForDay(day)) {
+    delete selectedDishes.value[day]
   }
 }
 
@@ -355,13 +587,41 @@ const saveOrder = async () => {
   saving.value = true
   
   try {
+    // Преобразуем данные для сохранения
+    const ordersToSave: Record<string, Record<string, string>> = {}
+    
+    for (const day in selectedDishes.value) {
+      ordersToSave[day] = {}
+      const isNightShift = selectedDishes.value[day]._nightShift || false
+      
+      for (const category in selectedDishes.value[day]) {
+        // Пропускаем служебное поле
+        if (category === '_nightShift') continue
+        
+        const selectedDish = selectedDishes.value[day][category]
+        let dishName = selectedDish.dish
+        
+        // Добавляем метку ночной смены к названию блюда
+        if (isNightShift) {
+          dishName += ' (ночь)'
+        }
+        
+        // Добавляем метку половинной порции
+        if (selectedDish.isHalfPortion) {
+          dishName += ' [½]'
+        }
+        
+        ordersToSave[day][category] = dishName
+      }
+    }
+    
     const orderData = {
-      user_id: user.value.id,
-      user_fio: user.value.fio,
-      user_department: user.value.department,
+      user_id: userId.value,
+      user_fio: userFio.value,
+      user_department: userDepartment.value,
       week_code: nextWeek.value.week_code,
       week_period: nextWeek.value.week_period,
-      orders: selectedDishes.value,
+      orders: ordersToSave,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
@@ -377,7 +637,15 @@ const saveOrder = async () => {
     if (response.ok) {
       const result = await response.json()
       if (result.success) {
-        alert('Заказ успешно сохранен!')
+        const nightCount = nightShiftDaysCount.value
+        const totalDishes = totalSelectedDishes.value.toFixed(1)
+        const halfCount = halfPortionsCount.value
+        
+        let message = `Заказ успешно сохранен!\nВсего блюд: ${totalDishes}`
+        if (nightCount > 0) message += `\nНочных дней: ${nightCount}`
+        if (halfCount > 0) message += `\nПоловинных порций: ${halfCount}`
+        
+        alert(message)
         router.push('/cabinet')
       } else {
         alert(result.message || 'Ошибка сохранения заказа')
@@ -393,24 +661,10 @@ const saveOrder = async () => {
   }
 }
 
-// Функция для получения списка файлов меню (для отладки)
-const getMenuFiles = async () => {
-  try {
-    // В реальном приложении нужно получать список файлов через API
-    // Для демо просто показываем предполагаемые файлы
-    const weeks = ['2026-W04', '2026-W05', '2026-W06', '2026-W07']
-    menuFiles.value = weeks.map(w => `${w}.json`)
-  } catch (error) {
-    console.error('Ошибка получения списка файлов:', error)
-    menuFiles.value = []
-  }
-}
-
 onMounted(async () => {
+  // Загружаем пользователя из store
   if (process.client) {
-    user.value.id = Number(localStorage.getItem('user_id')) || 0
-    user.value.fio = localStorage.getItem('user_fio') || 'Сотрудник'
-    user.value.department = localStorage.getItem('user_department') || ''
+    authStore.loadUser()
   }
 
   try {
@@ -420,26 +674,66 @@ onMounted(async () => {
       const data = await response.json()
       console.log('Данные от API:', data)
       
-      apiData.value = data
-      
       if (data.success) {
         nextWeek.value = data.week
         currentWeekCode.value = data.current_week_code || ''
         menu.value = data.menu || {}
         
-        // Загружаем существующий заказ пользователя
-        const orderResponse = await fetch(`/api/orders/my?userId=${user.value.id}&weekCode=${nextWeek.value.week_code}`)
-        if (orderResponse.ok) {
-          const orderData = await orderResponse.json()
-          if (orderData.success && orderData.currentOrder) {
-            selectedDishes.value = orderData.currentOrder.orders || {}
+        // Загружаем существующий заказ пользователя на следующую неделю
+        const currentUserId = userId.value
+        if (currentUserId && nextWeek.value.week_code) {
+          console.log(`🔍 Загрузка заказа для недели: ${nextWeek.value.week_code}`)
+          
+          const orderResponse = await fetch(`/api/orders/my?userId=${currentUserId}&weekCode=${nextWeek.value.week_code}`)
+          
+          if (orderResponse.ok) {
+            const orderData = await orderResponse.json()
+            
+            if (orderData.success && orderData.weekOrder) {
+              // Восстанавливаем заказ из API
+              const savedOrders = orderData.weekOrder.orders || {}
+              const restoredOrders: SelectedDishes = {}
+              
+              for (const day in savedOrders) {
+                restoredOrders[day] = {}
+                let dayHasNightShift = false
+                
+                for (const category in savedOrders[day]) {
+                  const dishName = savedOrders[day][category]
+                  const isNightShift = dishName.includes('(ночь)')
+                  const isHalfPortion = dishName.includes('[½]')
+                  
+                  // Удаляем метки из названия
+                  let cleanDishName = dishName
+                    .replace(' (ночь)', '')
+                    .replace(' [½]', '')
+                  
+                  restoredOrders[day][category] = {
+                    dish: cleanDishName,
+                    isHalfPortion: isHalfPortion
+                  }
+                  
+                  if (isNightShift) {
+                    dayHasNightShift = true
+                  }
+                }
+                
+                // Устанавливаем флаг ночной смены для дня
+                if (dayHasNightShift) {
+                  restoredOrders[day]._nightShift = true
+                }
+              }
+              
+              selectedDishes.value = restoredOrders
+              console.log('✅ Загружен существующий заказ на следующую неделю')
+            } else {
+              console.log('ℹ️ Заказа на следующую неделю еще нет')
+              selectedDishes.value = {}
+            }
           }
         }
       }
     }
-    
-    // Получаем список файлов меню для отображения
-    await getMenuFiles()
   } catch (error) {
     console.error('Ошибка загрузки меню:', error)
   } finally {

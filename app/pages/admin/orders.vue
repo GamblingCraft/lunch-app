@@ -47,8 +47,12 @@
           <div>
             <p class="text-sm text-blue-700">
               <strong>Неделя:</strong> {{ weekInfo.week_period }} 
-              • <strong>Всего заказов:</strong> {{ totalOrders }} 
+              • <strong>Всего блюд:</strong> {{ totalDishes.toFixed(1) }} 
               • <strong>Сотрудников:</strong> {{ departmentStats.reduce((sum, dept) => sum + dept.orders, 0) }}
+            </p>
+            <p v-if="fullPortionsTotal > 0 || halfPortionsTotal > 0" class="text-sm text-blue-600 mt-1">
+              <strong>Полных порций:</strong> {{ fullPortionsTotal }} 
+              • <strong>Половинных порций:</strong> {{ halfPortionsTotal }}
             </p>
           </div>
         </div>
@@ -58,8 +62,7 @@
     <!-- Таблица итогов -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
       <div class="p-6 border-b border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-800">Итоги по блюдам</h3>
-        <p class="text-gray-600 text-sm mt-1">Количество заказов каждого блюда</p>
+        <h3 class="text-lg font-semibold text-gray-800">Итог</h3>
       </div>
       
       <div v-if="loading" class="p-8 text-center">
@@ -86,7 +89,6 @@
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Категория</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Блюдо</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Количество</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Процент</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
@@ -106,25 +108,21 @@
                   <span class="text-sm text-gray-700">{{ item.category }}</span>
                 </td>
                 <td class="px-6 py-4">
-                  <div class="flex items-center">
-                    <span class="text-sm text-gray-700">{{ item.dish }}</span>
-                    <span v-if="item.isStandalone" class="ml-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                      самостоятельное
-                    </span>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-medium text-gray-900 mb-1">{{ cleanDishName(item.dish) }}</span>
+                    <div class="flex flex-wrap gap-1">
+                      <span v-if="item.isNightShift" class="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                        🌙 Ночная смена
+                      </span>
+                      <span v-if="item.isHalfPortion" class="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded">
+                        ½ порции
+                      </span>
+                    </div>
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="text-sm font-medium text-gray-900">{{ item.count }}</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="flex items-center">
-                    <div class="w-32 bg-gray-200 rounded-full h-2">
-                      <div 
-                        class="bg-accent-500 h-2 rounded-full" 
-                        :style="{ width: `${Math.min(item.percentage, 100)}%` }"
-                      ></div>
-                    </div>
-                    <span class="ml-2 text-sm text-gray-600">{{ item.percentage }}%</span>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-medium text-gray-900">{{ item.count.toFixed(1) }}</span>
                   </div>
                 </td>
               </tr>
@@ -135,21 +133,28 @@
     </div>
 
     <!-- Статистика по отделам -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+    <div v-if="departmentStats.length > 0" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
       <h3 class="text-lg font-semibold text-gray-800 mb-4">Статистика по отделам</h3>
-      <div v-if="departmentStats.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div 
-          v-for="dept in departmentStats" 
-          :key="dept.name"
-          class="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
-        >
-          <p class="text-sm font-medium text-gray-700 mb-1">{{ dept.name }}</p>
-          <p class="text-2xl font-bold text-gray-900">{{ dept.orders }}</p>
-          <p class="text-xs text-gray-500 mt-1">заказов ({{ dept.percentage }}%)</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div 
+        v-for="dept in departmentStats" 
+        :key="dept.name"
+        class="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
+      >
+        <p class="text-sm font-medium text-gray-700 mb-1">{{ dept.name }}</p>
+        <p class="text-2xl font-bold text-gray-900">{{ dept.orders }}</p>
+        <p class="text-xs text-gray-500 mt-1">заказов ({{ dept.percentage }}%)</p>
+        <div v-if="dept.totalDishes" class="mt-2 text-xs text-gray-600">
+          <div>Блюд: {{ dept.totalDishes.toFixed(1) }}</div>
+          <div v-if="dept.fullPortions" class="mt-0.5">
+            <span class="text-green-600">Полных: {{ dept.fullPortions }}</span>
+            <span v-if="dept.halfPortions" class="ml-2 text-purple-600">Половинных: {{ dept.halfPortions }}</span>
+          </div>
         </div>
       </div>
+      </div>
       
-      <!-- Круговые диаграммы по дням -->
+      <!-- Распределение по дням -->
       <div v-if="hasData" class="mt-8">
         <h4 class="text-md font-semibold text-gray-700 mb-4">Распределение по дням</h4>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -159,14 +164,25 @@
             class="border border-gray-200 rounded-lg p-4"
           >
             <p class="text-sm font-medium text-gray-700 mb-2 text-center">{{ day }}</p>
-            <div class="space-y-2">
-              <div 
-                v-for="item in getDayStats(day)"
-                :key="item.category"
-                class="flex items-center justify-between text-xs"
-              >
-                <span class="text-gray-600">{{ item.category }}:</span>
-                <span class="font-medium">{{ item.total }} шт.</span>
+            <div class="space-y-3">
+              <div v-for="category in categories" :key="category">
+                <!-- Получаем блюда для этого дня и категории -->
+                <div v-if="getDishesForDayAndCategory(day, category).length > 0">
+                  <p class="text-xs font-medium text-gray-700 mb-1">{{ category }}:</p>
+                  <div class="space-y-1 ml-2">
+                    <div 
+                      v-for="dish in getDishesForDayAndCategory(day, category)"
+                      :key="dish.dish"
+                      class="text-xs"
+                    >
+                      <div class="flex justify-between items-start">
+                        <span class="text-gray-600 truncate mr-1">{{ cleanDishName(dish.dish) }}</span>
+                        <span class="font-medium whitespace-nowrap">{{ dish.count.toFixed(1) }}</span>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -175,26 +191,13 @@
     </div>
     
     <!-- Общая статистика -->
-    <div v-if="hasData" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div v-if="hasData" class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h4 class="text-md font-semibold text-gray-700 mb-4">Итого по категориям</h4>
         <div class="space-y-3">
           <div v-for="cat in categoryTotals" :key="cat.name" class="flex items-center justify-between">
             <span class="text-sm text-gray-600">{{ cat.name }}:</span>
-            <span class="font-medium">{{ cat.total }} заказов</span>
-          </div>
-        </div>
-      </div>
-      
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h4 class="text-md font-semibold text-gray-700 mb-4">Самостоятельные блюда</h4>
-        <div class="space-y-3">
-          <div v-for="item in standaloneDishes" :key="item.dish" class="flex items-center justify-between">
-            <span class="text-sm text-gray-600">{{ item.dish }}:</span>
-            <span class="font-medium">{{ item.count }} шт.</span>
-          </div>
-          <div v-if="standaloneDishes.length === 0" class="text-center py-2 text-gray-500">
-            Нет самостоятельных блюд
+            <span class="font-medium">{{ cat.total.toFixed(1) }} блюд</span>
           </div>
         </div>
       </div>
@@ -203,8 +206,8 @@
         <h4 class="text-md font-semibold text-gray-700 mb-4">Общая информация</h4>
         <div class="space-y-3">
           <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-600">Всего заказов:</span>
-            <span class="font-medium">{{ totalOrders }}</span>
+            <span class="text-sm text-gray-600">Всего блюд:</span>
+            <span class="font-medium">{{ totalDishes.toFixed(1) }}</span>
           </div>
           <div class="flex items-center justify-between">
             <span class="text-sm text-gray-600">Уникальных блюд:</span>
@@ -239,13 +242,15 @@ const orderTotals = ref([])
 const departmentStats = ref([])
 const weekInfo = ref(null)
 const loading = ref(false)
-const totalOrders = ref(0)
+const totalDishes = ref(0)
 const availableWeeks = ref([])
+const fullPortionsTotal = ref(0)
+const halfPortionsTotal = ref(0)
 
 // Вычисляемые свойства
 const hasData = computed(() => orderTotals.value.length > 0)
 const uniqueDishes = computed(() => {
-  const dishes = new Set(orderTotals.value.map(item => item.dish))
+  const dishes = new Set(orderTotals.value.map(item => cleanDishName(item.dish)))
   return dishes.size
 })
 const uniqueDays = computed(() => {
@@ -255,8 +260,7 @@ const uniqueDays = computed(() => {
 const averagePerUser = computed(() => {
   if (departmentStats.value.length === 0) return 0
   const totalUsers = departmentStats.value.reduce((sum, dept) => sum + dept.orders, 0)
-  const totalDishes = orderTotals.value.reduce((sum, item) => sum + item.count, 0)
-  return totalDishes / totalUsers
+  return totalUsers > 0 ? totalDishes.value / totalUsers : 0
 })
 
 const categoryTotals = computed(() => {
@@ -271,30 +275,20 @@ const categoryTotals = computed(() => {
   })).sort((a, b) => b.total - a.total)
 })
 
-const standaloneDishes = computed(() => {
-  return orderTotals.value
-    .filter(item => item.isStandalone)
-    .map(item => ({
-      dish: item.dish,
-      count: item.count,
-      day: item.day
-    }))
-    .sort((a, b) => b.count - a.count)
-})
-
 // Методы
-const getDayStats = (day) => {
-  const dayItems = orderTotals.value.filter(item => item.day === day)
-  const stats = {}
-  
-  dayItems.forEach(item => {
-    stats[item.category] = (stats[item.category] || 0) + item.count
-  })
-  
-  return Object.entries(stats).map(([category, total]) => ({
-    category,
-    total
-  }))
+const cleanDishName = (dishName) => {
+  return dishName
+    .replace(' (ночь)', '')
+    .replace(' [½]', '')
+    .replace('(самост.)', '')
+    .trim()
+}
+
+// Метод для получения блюд по дню и категории
+const getDishesForDayAndCategory = (day, category) => {
+  return orderTotals.value.filter(item => 
+    item.day === day && item.category === category
+  )
 }
 
 const loadOrdersSummary = async () => {
@@ -306,29 +300,71 @@ const loadOrdersSummary = async () => {
     const data = await response.json()
     
     if (data.success) {
-      orderTotals.value = data.summary || []
+      const processedData = processOrderData(data.summary || [])
+      orderTotals.value = processedData.orderTotals
       departmentStats.value = data.departmentStats || []
-      totalOrders.value = data.totalOrders || 0
+      totalDishes.value = processedData.totalDishes
+      fullPortionsTotal.value = processedData.fullPortionsTotal
+      halfPortionsTotal.value = processedData.halfPortionsTotal
+      
       weekInfo.value = {
         week_code: data.week_code,
         week_period: data.week_period
       }
     } else {
-      orderTotals.value = []
-      departmentStats.value = []
-      totalOrders.value = 0
-      weekInfo.value = null
+      resetData()
       console.error('Ошибка загрузки данных:', data.message)
     }
   } catch (error) {
     console.error('Ошибка загрузки заказов:', error)
-    orderTotals.value = []
-    departmentStats.value = []
-    totalOrders.value = 0
-    weekInfo.value = null
+    resetData()
   } finally {
     loading.value = false
   }
+}
+
+// Новая функция для обработки данных заказов
+const processOrderData = (summary) => {
+  const orderTotals = []
+  let totalDishes = 0
+  let fullPortionsTotal = 0
+  let halfPortionsTotal = 0
+  
+  summary.forEach(item => {
+    const isHalfPortion = item.dish.includes('[½]')
+    const isNightShift = item.dish.includes('(ночь)')
+    const count = isHalfPortion ? 0.5 : 1
+    
+    totalDishes += count
+    if (isHalfPortion) {
+      halfPortionsTotal += 1
+    } else {
+      fullPortionsTotal += 1
+    }
+    
+    orderTotals.push({
+      ...item,
+      count,
+      isHalfPortion,
+      isNightShift
+    })
+  })
+  
+  return {
+    orderTotals,
+    totalDishes,
+    fullPortionsTotal,
+    halfPortionsTotal
+  }
+}
+
+const resetData = () => {
+  orderTotals.value = []
+  departmentStats.value = []
+  totalDishes.value = 0
+  fullPortionsTotal.value = 0
+  halfPortionsTotal.value = 0
+  weekInfo.value = null
 }
 
 const getAvailableWeeks = async () => {
@@ -355,14 +391,12 @@ const exportToExcel = async () => {
   }
   
   try {
-    // Создаем CSV
-    let csv = 'День;Категория;Блюдо;Количество;Процент;Самостоятельное\n'
+    let csv = 'День;Категория;Блюдо;Количество;Половинная порция;Ночная смена\n'
     
     orderTotals.value.forEach(item => {
-      csv += `${item.day};${item.category};${item.dish};${item.count};${item.percentage}%;${item.isStandalone ? 'Да' : 'Нет'}\n`
+      csv += `${item.day};${item.category};${cleanDishName(item.dish)};${item.count.toFixed(1)};${item.isHalfPortion ? 'Да' : 'Нет'};${item.isNightShift ? 'Да' : 'Нет'};${item.percentage.toFixed(1)}%\n`
     })
     
-    // Создаем blob и скачиваем
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)

@@ -428,6 +428,8 @@ const getDepartmentClass = (department) => {
     'Отдел разработки': 'bg-blue-100 text-blue-800',
     'Маркетинг': 'bg-green-100 text-green-800',
     'Отдел маркетинга': 'bg-green-100 text-green-800',
+    'Склад': 'bg-green-100 text-green-800',
+    'Колл-центр': 'bg-green-100 text-green-800',
     'Продажи': 'bg-purple-100 text-purple-800',
     'Бухгалтерия': 'bg-yellow-100 text-yellow-800',
     'Производство': 'bg-red-100 text-red-800',

@@ -2,12 +2,12 @@
   {
     "id": 1769162269002,
     "telegram_id": 111222333,
-    "first_name": "Дик",
-    "last_name": "Егор Владимирович",
+    "first_name": "Z",
+    "last_name": "V",
     "username": "employee_test",
     "photo_url": "",
     "fio": "Дик Егор Владимирович",
-    "department": "Отдел маркетинга",
+    "department": "Склад",
     "is_admin": false,
     "created_at": "2026-01-23T09:57:49.002Z",
     "updated_at": "2026-01-26T05:32:19.571Z"

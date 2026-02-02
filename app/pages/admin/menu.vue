@@ -1,4 +1,3 @@
-<!-- app/pages/admin/menu.vue -->
 <template>
   <div>
     <!-- Заголовок -->
@@ -8,16 +7,29 @@
         <p class="text-gray-600 mt-1">Создание и редактирование меню для сотрудников</p>
       </div>
       
-      <!-- Кнопка создания новой недели -->
-      <button 
-        @click="showCreateWeekModal = true"
-        class="px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
-      >
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-        </svg>
-        Новая неделя
-      </button>
+      <div class="flex items-center gap-3">
+        <!-- Кнопка импорта из Excel -->
+        <button 
+          @click="showImportModal = true"
+          class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center"
+        >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Импорт из Excel
+        </button>
+        
+        <!-- Кнопка создания новой недели -->
+        <button 
+          @click="showCreateWeekModal = true"
+          class="px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
+        >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+          </svg>
+          Новая неделя
+        </button>
+      </div>
     </div>
 
     <!-- Выбор недели -->
@@ -96,35 +108,39 @@
                 <div class="text-sm font-medium text-gray-900">{{ day }}</div>
               </td>
               <td class="px-6 py-4">
-                <DishesList 
+                <EditableDishesList 
                   :dishes="getDishes(day, 'Салат')" 
                   :day="day"
                   category="Салат"
                   @remove="removeDish"
+                  @update="updateDishName"
                 />
               </td>
               <td class="px-6 py-4">
-                <DishesList 
+                <EditableDishesList 
                   :dishes="getDishes(day, 'Суп')" 
                   :day="day"
                   category="Суп"
                   @remove="removeDish"
+                  @update="updateDishName"
                 />
               </td>
               <td class="px-6 py-4">
-                <DishesList 
+                <EditableDishesList 
                   :dishes="getDishes(day, 'Горячее')" 
                   :day="day"
                   category="Горячее"
                   @remove="removeDish"
+                  @update="updateDishName"
                 />
               </td>
               <td class="px-6 py-4">
-                <DishesList 
+                <EditableDishesList 
                   :dishes="getDishes(day, 'Гарнир')" 
                   :day="day"
                   category="Гарнир"
                   @remove="removeDish"
+                  @update="updateDishName"
                 />
               </td>
             </tr>
@@ -143,6 +159,106 @@
           >
             {{ isSaving ? 'Сохранение...' : 'Сохранить изменения' }}
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Модальное окно импорта из Excel -->
+    <div v-if="showImportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-xl shadow-xl max-w-md w-full">
+        <div class="p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900">Импорт меню из Excel</h3>
+            <button @click="showImportModal = false" class="text-gray-400 hover:text-gray-600">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="space-y-4">
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <input 
+                type="file" 
+                ref="fileInput"
+                accept=".xlsx,.xls"
+                @change="handleFileUpload"
+                class="hidden"
+              />
+              
+              <div v-if="!excelData" class="space-y-3">
+                <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p class="text-sm text-gray-600">Выберите файл Excel с меню</p>
+                <button 
+                  @click="$refs.fileInput.click()"
+                  class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Выбрать файл
+                </button>
+                <p class="text-xs text-gray-500 mt-2">Поддерживаются файлы .xlsx и .xls</p>
+              </div>
+              
+              <div v-else class="space-y-3">
+                <svg class="w-12 h-12 mx-auto text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-sm font-medium text-gray-700">Файл загружен</p>
+                <p class="text-xs text-gray-600">{{ excelData.fileName }}</p>
+                <div class="flex justify-center space-x-3">
+                  <button 
+                    @click="excelData = null"
+                    class="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+                  >
+                    Загрузить другой
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div v-if="excelData?.parsedData" class="border border-gray-200 rounded-lg p-4">
+              <p class="font-medium text-gray-700 mb-2">Превью импорта:</p>
+              <div class="text-sm text-gray-600 space-y-1">
+                <div v-for="(dishes, day) in excelData.parsedData" :key="day" class="border-b border-gray-100 pb-1">
+                  <span class="font-medium">{{ day }}:</span>
+                  <span class="ml-2">
+                    {{ Object.values(dishes).flat().length }} блюд
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div v-if="excelData" class="flex items-center">
+              <input 
+                v-model="importReplaceExisting"
+                type="checkbox"
+                id="replaceExisting"
+                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label for="replaceExisting" class="ml-2 block text-sm text-gray-700">
+                Заменить существующее меню
+              </label>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end space-x-3">
+            <button 
+              @click="showImportModal = false"
+              type="button"
+              class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800"
+            >
+              Отмена
+            </button>
+            <button 
+              @click="importFromExcel"
+              :disabled="!excelData || isImporting"
+              type="button"
+              class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ isImporting ? 'Импорт...' : 'Импортировать' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -231,8 +347,9 @@ definePageMeta({
 })
 
 import { ref, computed, onMounted } from 'vue'
-import AddDishModal from '@/components/admin/AddDishModal.vue'
-import DishesList from '@/components/admin/DishesList.vue'
+import * as XLSX from 'xlsx'
+import AddDishModal from '@/components/admin/menu/AddDishModal.vue'
+import EditableDishesList from '@/components/admin/menu/EditableDishesList.vue'
 
 const days = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница']
 const categories = ['Салат', 'Суп', 'Горячее', 'Гарнир']
@@ -244,10 +361,14 @@ const currentWeek = ref(null)
 const menuData = ref({})
 const showAddModal = ref(false)
 const showCreateWeekModal = ref(false)
+const showImportModal = ref(false)
 const newWeekDate = ref('')
 const copyFromCurrent = ref(true)
 const isSaving = ref(false)
 const isCreatingWeek = ref(false)
+const isImporting = ref(false)
+const importReplaceExisting = ref(false)
+const excelData = ref(null)
 
 // Вычисляемые свойства
 const totalDishesCount = computed(() => {
@@ -307,7 +428,6 @@ function getWeekPeriod(weekCode) {
     const friday = new Date(monday)
     friday.setDate(monday.getDate() + 4)
     
-    // Форматируем даты с годом в каждой дате
     const formatDate = (date) => {
       const day = date.getDate().toString().padStart(2, '0')
       const month = (date.getMonth() + 1).toString().padStart(2, '0')
@@ -327,14 +447,162 @@ const getDishes = (day, category) => {
 }
 
 const openAddModal = () => {
-  console.log('Opening add dish modal')
   showAddModal.value = true
 }
 
-
 const closeAddModal = () => {
-  console.log('Closing add dish modal')
   showAddModal.value = false
+}
+
+// Импорт из Excel
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  try {
+    const arrayBuffer = await file.arrayBuffer()
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+    
+    // Преобразуем данные Excel в JSON
+    const data = XLSX.utils.sheet_to_json(firstSheet, { header: 1 })
+    
+    // Парсим данные в структуру меню
+    const parsedData = parseExcelData(data)
+    
+    excelData.value = {
+      fileName: file.name,
+      fileSize: (file.size / 1024).toFixed(2) + ' KB',
+      parsedData: parsedData
+    }
+    
+  } catch (error) {
+    console.error('Ошибка чтения файла:', error)
+    alert('Ошибка при чтении файла Excel')
+  }
+}
+
+const parseExcelData = (data) => {
+  const parsedMenu = {}
+  let currentDay = null
+  
+  // Проходим по всем строкам Excel
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i]
+    
+    // Пропускаем пустые строки
+    if (!row || row.every(cell => !cell)) continue
+    
+    // Определяем день недели (строка начинается с дня недели)
+    const firstCell = row[0]?.toString().trim()
+    
+    if (days.includes(firstCell)) {
+      currentDay = firstCell
+      if (!parsedMenu[currentDay]) {
+        parsedMenu[currentDay] = {}
+        categories.forEach(cat => {
+          parsedMenu[currentDay][cat] = []
+        })
+      }
+      continue
+    }
+    
+    // Если есть текущий день, парсим блюда
+    if (currentDay && row[0]) {
+      const categoryName = row[0]?.toString().trim()
+      
+      if (categories.includes(categoryName) || categoryName.includes('Горячее/гарнир')) {
+        // Определяем категорию
+        let category = categoryName
+        
+        // Обработка объединенных категорий - ТОЛЬКО ГОРЯЧЕЕ
+        if (categoryName === 'Горячее/гарнир') {
+          category = 'Горячее'
+          // Берем оба блюда как горячее (если их два)
+          const dish1 = row[1]?.toString().trim()
+          const dish2 = row[2]?.toString().trim()
+          
+          if (dish1) parsedMenu[currentDay][category].push(dish1)
+          if (dish2) parsedMenu[currentDay][category].push(dish2)
+          
+          // Гарнир в этот день оставляем пустым
+        } else {
+          // Обычные категории
+          const dish1 = row[1]?.toString().trim()
+          const dish2 = row[2]?.toString().trim()
+          
+          if (dish1) parsedMenu[currentDay][category].push(dish1)
+          if (dish2) parsedMenu[currentDay][category].push(dish2)
+        }
+      }
+    }
+  }
+  
+  return parsedMenu
+}
+
+const importFromExcel = async () => {
+  if (!excelData.value?.parsedData) return
+  
+  isImporting.value = true
+  
+  try {
+    if (importReplaceExisting.value) {
+      // Заменяем существующее меню
+      menuData.value = excelData.value.parsedData
+    } else {
+      // Добавляем к существующему меню
+      for (const day in excelData.value.parsedData) {
+        if (!menuData.value[day]) {
+          menuData.value[day] = {}
+        }
+        
+        for (const category in excelData.value.parsedData[day]) {
+          if (!menuData.value[day][category]) {
+            menuData.value[day][category] = []
+          }
+          
+          // Добавляем только уникальные блюда
+          const newDishes = excelData.value.parsedData[day][category]
+          const existingDishes = menuData.value[day][category]
+          
+          newDishes.forEach(dish => {
+            if (!existingDishes.includes(dish)) {
+              existingDishes.push(dish)
+            }
+          })
+        }
+      }
+    }
+    
+    // Закрываем модальное окно и сбрасываем данные
+    showImportModal.value = false
+    excelData.value = null
+    importReplaceExisting.value = false
+    
+    // Автоматически сохраняем
+    await saveMenu()
+    
+    alert('Меню успешно импортировано!')
+    
+  } catch (error) {
+    console.error('Ошибка импорта:', error)
+    alert('Ошибка при импорте меню')
+  } finally {
+    isImporting.value = false
+  }
+}
+
+// Функция обновления названия блюда
+const updateDishName = ({ day, category, oldName, newName }) => {
+  if (!menuData.value[day] || !menuData.value[day][category]) return
+  
+  const dishes = menuData.value[day][category]
+  const index = dishes.indexOf(oldName)
+  
+  if (index !== -1) {
+    dishes[index] = newName.trim()
+  }
 }
 
 const loadWeeks = async () => {
@@ -350,7 +618,6 @@ const loadWeeks = async () => {
         currentWeek.value = currentWeekObj
         await loadWeekMenu()
       } else {
-        // Если нет недель, создаем текущую
         await createCurrentWeek()
       }
     } else {
@@ -379,7 +646,6 @@ const createCurrentWeek = async () => {
   selectedWeekCode.value = currentWeekCode
   currentWeek.value = newWeek
   
-  // Создаем пустое меню
   menuData.value = initializeEmptyMenu()
 }
 
@@ -417,8 +683,6 @@ const initializeEmptyMenu = () => {
 }
 
 const addDish = (dishData) => {
-  console.log('Adding dish:', dishData)
-  
   const { day, category, name, isStandalone } = dishData
   
   if (!menuData.value[day]) {
@@ -433,7 +697,6 @@ const addDish = (dishData) => {
     dishName += ' (самост.)'
   }
   
-  // Проверяем, нет ли уже такого блюда
   if (!menuData.value[day][category].includes(dishName)) {
     menuData.value[day][category].push(dishName)
   }
@@ -442,7 +705,6 @@ const addDish = (dishData) => {
 }
 
 const handleAddDish = (dishData) => {
-  console.log('Received dish data in menu.vue:', dishData)
   addDish(dishData)
 }
 
@@ -461,7 +723,6 @@ const createNewWeek = async () => {
   isCreatingWeek.value = true
   
   try {
-    // Проверяем, нет ли уже такой недели
     const existingWeek = weeks.value.find(w => w.week_code === generatedWeek.value.week_code)
     if (existingWeek) {
       alert('Неделя с таким кодом уже существует!')
@@ -477,13 +738,11 @@ const createNewWeek = async () => {
       updated_at: new Date().toISOString()
     }
     
-    // Если нужно скопировать из текущей недели
     let menuToCopy = menuData.value
     if (!copyFromCurrent.value || !selectedWeekCode.value) {
       menuToCopy = initializeEmptyMenu()
     }
     
-    // Сохраняем меню для новой недели
     const saveResponse = await fetch(`/api/menu/${newWeek.week_code}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -497,17 +756,14 @@ const createNewWeek = async () => {
       throw new Error('Failed to save week menu')
     }
     
-    // Добавляем неделю в список
     weeks.value.push(newWeek)
     
-    // Сохраняем обновленный список недель
     await fetch('/api/weeks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ weeks: weeks.value })
     })
     
-    // Переключаемся на новую неделю
     selectedWeekCode.value = newWeek.week_code
     await loadWeekMenu()
     
@@ -547,7 +803,6 @@ const saveMenu = async () => {
       console.log('Menu saved:', result)
       alert('Меню успешно сохранено!')
       
-      // Обновляем информацию о неделе
       if (currentWeek.value) {
         currentWeek.value.updated_at = new Date().toISOString()
       }

@@ -169,6 +169,40 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { navigateTo } from '#app'
+
+import { ref, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const accessGranted = ref(false)
+
+onMounted(() => {
+  if (process.client) {
+    authStore.loadUser()
+    
+    setTimeout(() => {
+      checkAccess()
+    }, 50)
+  }
+})
+
+const checkAccess = () => {
+  if (!authStore.isAuthenticated) {
+    console.log('Пользователь не авторизован')
+    return
+  }
+  
+  if (authStore.isAdmin) {
+    console.log('Админ пытается зайти в кабинет')
+    return
+  }
+  
+  console.log('Доступ к кабинету разрешен')
+  accessGranted.value = true
+}
 
 interface User {
   id: number
